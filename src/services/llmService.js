@@ -1,34 +1,43 @@
-const { GoogleGenAI } = require("@google/genai");
+const Groq = require("groq-sdk");
 
 async function getLLMReply(userMessage) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
-    throw new Error("Missing GEMINI_API_KEY in environment variables");
+    throw new Error("Missing GROQ_API_KEY in environment variables");
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const groq = new Groq({
+    apiKey,
+  });
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `
-You are a helpful chatbot.
-Reply clearly, briefly, and in a friendly way.
-
-User: ${userMessage}
-      `
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Jarvice, a helpful chatbot. Reply clearly, briefly, and in a friendly way.",
+        },
+        {
+          role: "user",
+          content: userMessage,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 800,
     });
 
-    const reply = response.text;
+    const reply = completion.choices[0]?.message?.content;
 
     if (!reply) {
-      throw new Error("Empty response from Gemini API");
+      throw new Error("Empty response from Groq API");
     }
 
     return reply;
   } catch (error) {
-    console.error("Gemini service error:");
+    console.error("Groq service error:");
     console.error("message:", error.message);
     throw error;
   }
